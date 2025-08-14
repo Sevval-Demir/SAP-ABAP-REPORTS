@@ -38,7 +38,7 @@ Projeler, SAP ERP üzerinde **MM (Malzeme Yönetimi)**, **personel yönetimi** v
 - **Şirket:** Detaysoft
 - **Departman:** ABAP Geliştirme
 - **Süre:** 21 Temmuz 2025 – 15 Ağustos 2025
-- **Sistem:** SAP ERP ECC 6.0
+- **Sistem:** SAP 
 
 ---
 
