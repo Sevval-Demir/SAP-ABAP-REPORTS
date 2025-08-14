@@ -1,0 +1,30 @@
+*&---------------------------------------------------------------------*
+*& Report  Z_ALISTIRMA_001
+*&
+*&---------------------------------------------------------------------*
+*&
+*&
+*&---------------------------------------------------------------------*
+
+REPORT  Z_ALISTIRMA_001.
+
+DATA: gv_dgs1 TYPE i,
+      gv_dgs2 TYPE n LENGTH 10,
+      gv_sonuc TYPE i,
+      gv_metin TYPE string.
+
+gv_dgs1 = 20.
+gv_dgs2 = 30.
+
+gv_metin = 'Toplam = '.
+gv_sonuc = gv_dgs1 + gv_dgs2.
+WRITE: gv_metin, gv_sonuc.
+
+gv_sonuc = gv_dgs1 - gv_dgs2.
+WRITE: / 'Fark = ' , gv_sonuc.
+
+gv_sonuc = gv_dgs1 * gv_dgs2.
+WRITE: / 'Carpim = ', gv_sonuc.
+
+gv_sonuc = gv_dgs1 / gv_dgs2.
+WRITE: / 'Bolum = ', gv_sonuc.
