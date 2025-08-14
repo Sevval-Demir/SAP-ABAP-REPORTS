@@ -1,0 +1,44 @@
+*&---------------------------------------------------------------------*
+*& Report  Z_ODEV_003
+*&
+*&---------------------------------------------------------------------*
+*&
+*&
+*&---------------------------------------------------------------------*
+
+REPORT  Z_ODEV_003.
+
+PARAMETERS:
+p_num1 TYPE i OBLIGATORY,
+p_num2 TYPE i OBLIGATORY.
+
+DATA:
+gs_a TYPE i VALUE 1,
+gs_b TYPE i VALUE 2,
+gs_c TYPE i,
+gs_count TYPE i VALUE 2.
+
+IF p_num1 >= 1 AND p_num1 <= 10000 AND  p_num2 >= 1  AND p_num2 <= 9.
+WRITE: gs_a,gs_b.
+
+  WHILE gs_b <= p_num1.
+    gs_c = gs_a + gs_b.
+
+    IF gs_c > p_num1.
+      EXIT.
+    ENDIF.
+
+    WRITE: gs_c.
+    gs_count = gs_count + 1.
+
+    IF gs_count MOD p_num2 = 0.
+      SKIP.
+    ENDIF.
+
+    gs_a = gs_b.
+    gs_b = gs_c.
+
+  ENDWHILE.
+ELSE.
+  WRITE: 'Geçersiz sayı aralığı girdiniz.'.
+ENDIF.

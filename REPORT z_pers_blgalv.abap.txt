@@ -1,0 +1,284 @@
+REPORT z_pers_blgalv.
+
+TABLES: zmt_personel, zpers_iletisim, zpers_aile, zpers_egitim.
+TABLES: sscrfields.  " Toolbar butonu için gerekli, ekranlara buton ekleyip tepki verilmesini sağlar.
+
+TYPE-POOLS: vimt. " VIMSELCON için gerekli
+
+TYPES: slis_fieldname  TYPE c LENGTH 30,
+       slis_text_field TYPE c LENGTH 40.
+
+TYPES: BEGIN OF ty_master,
+         perno         TYPE zmt_personel-personel_no,
+         ad            TYPE zmt_personel-ad,
+         soyad         TYPE zmt_personel-soyad,
+         cinsiyet      TYPE zmt_personel-cinsiyet,
+         dogum_yeri    TYPE zmt_personel-dogum_yeri,
+         dogum_tarihi  TYPE zmt_personel-dogum_tarihi,
+       END OF ty_master.
+DATA: lt_master TYPE TABLE OF ty_master.
+
+TYPES: BEGIN OF ty_iletisim,
+           perno            TYPE zpers_iletisim-personel_no,
+           ile_turu         TYPE zpers_iletisim-iletisim_turu,
+           ile_tanitici     TYPE zpers_iletisim-iletisim_tanitici,
+           ile_taniticiuzun TYPE zpers_iletisim-iletisim_tanitici_uzun,
+         END OF ty_iletisim.
+
+DATA: gt_iletisim TYPE TABLE OF ty_iletisim.
+
+TYPES: BEGIN OF ty_aile,
+           perno            TYPE zpers_aile-personel_no,
+           aile_taniticino  TYPE zpers_aile-ailetanitici_no,
+           aile_ad          TYPE zpers_aile-ad,
+           aile_soyad       TYPE zpers_aile-soyad,
+           aile_telefon     TYPE zpers_aile-telefon,
+           aile_sokak       TYPE zpers_aile-sokak,
+           aile_il          TYPE zpers_aile-il,
+           aile_ulke        TYPE zpers_aile-ulke,
+         END OF ty_aile.
+
+DATA: gt_aile TYPE TABLE OF ty_aile.
+
+TYPES: BEGIN OF ty_egitim,
+         perno       TYPE zpers_egitim-personel_no,
+         egitim_kodu TYPE zpers_egitim-egitim_kodu,
+         okul_adi    TYPE zpers_egitim-okul_adi,
+         il          TYPE zpers_egitim-il,
+         ulke        TYPE zpers_egitim-ulke,
+       END OF ty_egitim.
+
+DATA: gt_egitim TYPE TABLE OF ty_egitim.
+
+
+DATA: gs_fieldcat TYPE slis_fieldcat_alv,
+      gt_fieldcat TYPE slis_t_fieldcat_alv.
+
+SELECTION-SCREEN BEGIN OF BLOCK b1 WITH FRAME.
+
+SELECT-OPTIONS: s_perno FOR zmt_personel-personel_no
+                MATCHCODE OBJECT zsh_personel.
+
+PARAMETERS: p_rad1 RADIOBUTTON GROUP grp DEFAULT 'X',
+            p_rad2 RADIOBUTTON GROUP grp,
+            p_rad3 RADIOBUTTON GROUP grp,
+            p_rad4 RADIOBUTTON GROUP grp.
+
+SELECTION-SCREEN END OF BLOCK b1.
+
+SELECTION-SCREEN FUNCTION KEY 1.
+
+AT SELECTION-SCREEN OUTPUT.
+  sscrfields-functxt_01 = 'Bakım Git'.
+
+AT SELECTION-SCREEN.
+  CASE sscrfields-ucomm.
+    WHEN 'FC01'.
+      PERFORM open_bakim_screen.
+  ENDCASE.
+
+START-OF-SELECTION.
+  IF p_rad1 = 'X'.
+    PERFORM yaz_master_bilgisi.
+  ELSEIF p_rad2 = 'X'.
+    PERFORM yaz_iletisim_bilgisi.
+  ELSEIF p_rad3 = 'X'.
+    PERFORM yaz_aile_bilgisi.
+  ELSEIF p_rad4 = 'X'.
+    PERFORM yaz_egitim_bilgisi.
+  ENDIF.
+
+FORM open_bakim_screen.
+  DATA: lv_view TYPE viewname VALUE ''.
+
+  CASE 'X'.
+    WHEN p_rad1. lv_view = 'ZMT_PERSONEL'.
+    WHEN p_rad2. lv_view = 'ZPERS_ILETISIM'.
+    WHEN p_rad3. lv_view = 'ZPERS_AILE'.
+    WHEN p_rad4. lv_view = 'ZPERS_EGITIM'.
+  ENDCASE.
+
+  IF lv_view IS INITIAL.
+    MESSAGE 'Lütfen bilgi türünü seçiniz.' TYPE 'I'.
+    RETURN.
+  ENDIF.
+
+  CALL FUNCTION 'VIEW_MAINTENANCE_CALL'
+    EXPORTING
+      action               = 'U'
+      view_name            = lv_view
+      show_selection_popup = ''.
+ENDFORM.
+
+FORM yaz_master_bilgisi.
+
+  SELECT personel_no ad soyad cinsiyet dogum_yeri dogum_tarihi
+    INTO TABLE lt_master
+    FROM zmt_personel
+    WHERE personel_no IN s_perno.
+
+  IF lt_master IS INITIAL.
+    MESSAGE 'Kayıt bulunamadı.' TYPE 'I'.
+    RETURN.
+  ENDIF.
+
+  CLEAR gt_fieldcat.
+  PERFORM fieldcat_add USING 'PERNO' 'Personel No'.
+  PERFORM fieldcat_add USING 'AD' 'Ad'.
+  PERFORM fieldcat_add USING 'SOYAD' 'Soyad'.
+  PERFORM fieldcat_add USING 'CINSIYET' 'Cinsiyet'.
+  PERFORM fieldcat_add USING 'DOGUM_YERI' 'Doğum Yeri'.
+  PERFORM fieldcat_add USING 'DOGUM_TARIHI' 'Doğum Tarihi'.
+
+  CALL FUNCTION 'REUSE_ALV_GRID_DISPLAY'
+    EXPORTING
+      i_callback_program      = sy-repid
+      i_callback_user_command = 'USER_COMMAND'
+      it_fieldcat             = gt_fieldcat
+    TABLES
+      t_outtab                = lt_master.
+ENDFORM.
+
+FORM yaz_iletisim_bilgisi.
+
+  SELECT a~personel_no a~iletisim_turu a~iletisim_tanitici a~iletisim_tanitici_uzun
+    INTO TABLE gt_iletisim
+    FROM zpers_iletisim AS a
+    INNER JOIN zmt_personel AS b ON a~personel_no = b~personel_no
+    WHERE a~personel_no IN s_perno.
+
+  CLEAR gt_fieldcat.
+  PERFORM fieldcat_add USING 'PERNO' 'Personel No'.
+  PERFORM fieldcat_add USING 'ILE_TURU' 'İletişim Türü'.
+  PERFORM fieldcat_add USING 'ILE_TANITICI' 'Tanıtıcı'.
+  PERFORM fieldcat_add USING 'ILE_TANITICIUZUN' 'Tanıtıcı Uzun'.
+
+  CALL FUNCTION 'REUSE_ALV_GRID_DISPLAY'
+    EXPORTING
+      i_callback_program = sy-repid
+      i_callback_user_command = 'USER_COMMAND'
+      it_fieldcat        = gt_fieldcat
+    TABLES
+      t_outtab           = gt_iletisim.
+ENDFORM.
+
+FORM yaz_aile_bilgisi.
+
+
+
+  SELECT a~personel_no a~ailetanitici_no a~ad a~soyad a~telefon a~sokak a~il a~ulke
+    INTO TABLE gt_aile
+    FROM zpers_aile AS a
+    INNER JOIN zmt_personel AS b ON a~personel_no = b~personel_no
+    WHERE a~personel_no IN s_perno.
+
+  CLEAR gt_fieldcat.
+  PERFORM fieldcat_add USING 'PERNO' 'Personel No'.
+  PERFORM fieldcat_add USING 'AILE_TANITICINO' 'Tanıtıcı No'.
+  PERFORM fieldcat_add USING 'AILE_AD' 'Ad'.
+  PERFORM fieldcat_add USING 'AILE_SOYAD' 'Soyad'.
+  PERFORM fieldcat_add USING 'AILE_TELEFON' 'Telefon'.
+  PERFORM fieldcat_add USING 'AILE_SOKAK' 'Sokak'.
+  PERFORM fieldcat_add USING 'AILE_IL' 'İl'.
+  PERFORM fieldcat_add USING 'AILE_ULKE' 'Ülke'.
+
+  CALL FUNCTION 'REUSE_ALV_GRID_DISPLAY'
+    EXPORTING
+      i_callback_program = sy-repid
+      i_callback_user_command = 'USER_COMMAND'
+      it_fieldcat        = gt_fieldcat
+    TABLES
+      t_outtab           = gt_aile.
+ENDFORM.
+
+FORM yaz_egitim_bilgisi.
+
+  SELECT a~personel_no a~egitim_kodu a~okul_adi a~il a~ulke
+    INTO TABLE gt_egitim
+    FROM zpers_egitim AS a
+    INNER JOIN zmt_personel AS b ON a~personel_no = b~personel_no
+    WHERE a~personel_no IN s_perno.
+
+  CLEAR gt_fieldcat.
+  PERFORM fieldcat_add USING 'PERNO' 'Personel No'.
+  PERFORM fieldcat_add USING 'EGITIM_KODU' 'Eğitim Kodu'.
+  PERFORM fieldcat_add USING 'OKUL_ADI' 'Okul Adı'.
+  PERFORM fieldcat_add USING 'IL' 'İl'.
+  PERFORM fieldcat_add USING 'ULKE' 'Ülke'.
+
+  CALL FUNCTION 'REUSE_ALV_GRID_DISPLAY'
+    EXPORTING
+      i_callback_program = sy-repid
+      i_callback_user_command = 'USER_COMMAND'
+      it_fieldcat        = gt_fieldcat
+    TABLES
+      t_outtab           = gt_egitim.
+ENDFORM.
+
+FORM fieldcat_add USING p_fieldname TYPE slis_fieldname
+                         p_text      TYPE slis_text_field.
+  CLEAR gs_fieldcat.
+  gs_fieldcat-fieldname = p_fieldname.
+  gs_fieldcat-seltext_m = p_text.
+  APPEND gs_fieldcat TO gt_fieldcat.
+ENDFORM.
+
+
+FORM user_command USING r_ucomm LIKE sy-ucomm
+                      rs_selfield TYPE slis_selfield.
+
+  IF r_ucomm = '&IC1'.
+    DATA: ls_row_master  TYPE ty_master,
+          ls_row_iletisim TYPE ty_iletisim,
+          ls_row_aile     TYPE ty_aile,
+          ls_row_egitim   TYPE ty_egitim.
+
+    IF p_rad1 = 'X'.
+      READ TABLE lt_master INTO ls_row_master INDEX rs_selfield-tabindex.
+      IF sy-subrc = 0 AND ls_row_master-perno IS NOT INITIAL.
+        CALL FUNCTION 'VIEW_MAINTENANCE_CALL'
+          EXPORTING
+            ACTION    = 'U'
+            VIEW_NAME = 'ZMT_PERSONEL'.
+      ENDIF.
+
+    ENDIF.                                                  " p_rad1
+
+    IF p_rad2 = 'X'.
+      READ TABLE gt_iletisim INTO ls_row_iletisim INDEX rs_selfield-tabindex.
+      IF sy-subrc = 0 AND ls_row_iletisim-perno IS NOT INITIAL.
+        CALL FUNCTION 'VIEW_MAINTENANCE_CALL'
+          EXPORTING
+            ACTION    = 'U'
+            VIEW_NAME = 'ZPERS_ILETISIM'.
+      ENDIF.
+    ENDIF.                                                  " p_rad2
+
+    IF p_rad3 = 'X'.
+      READ TABLE gt_aile INTO ls_row_aile INDEX rs_selfield-tabindex.
+      IF sy-subrc = 0 AND ls_row_aile-perno IS NOT INITIAL.
+        CALL FUNCTION 'VIEW_MAINTENANCE_CALL'
+          EXPORTING
+            ACTION    = 'U'
+            VIEW_NAME = 'ZPERS_AILE'.
+      ENDIF.
+    ENDIF.                                                  " p_rad3
+
+    IF p_rad4 = 'X'.
+      READ TABLE gt_egitim INTO ls_row_egitim INDEX rs_selfield-tabindex.
+      IF sy-subrc = 0 AND ls_row_egitim-perno IS NOT INITIAL.
+        CALL FUNCTION 'VIEW_MAINTENANCE_CALL'
+          EXPORTING
+            ACTION    = 'U'
+            VIEW_NAME = 'ZPERS_EGITIM'.
+      ENDIF.
+    ENDIF.                                                  " p_rad4
+
+    " Eğer hiçbir radyo butonuna basılmamışsa uyarı ver
+    IF p_rad1 IS INITIAL AND p_rad2 IS INITIAL AND p_rad3 IS INITIAL AND p_rad4 IS INITIAL.
+      MESSAGE 'Lütfen bir satır seçin.' TYPE 'I'.
+    ENDIF.
+
+  ENDIF.
+
+ENDFORM.

@@ -1,0 +1,43 @@
+*&---------------------------------------------------------------------*
+*& Report  Z_ODEV_002
+*&
+*&---------------------------------------------------------------------*
+*&
+*&
+*&---------------------------------------------------------------------*
+
+REPORT  Z_ODEV_002.
+
+PARAMETERS:
+p_asal TYPE i OBLIGATORY.
+
+DATA:
+counter TYPE i VALUE 0,
+index TYPE i VALUE 2.
+
+IF p_asal >= 1 AND p_asal <= 10000.
+IF p_asal = 1.
+
+  WRITE: 'Girilen sayı asal sayı değildir.', p_asal.
+
+ELSE.
+
+  WHILE index <= p_asal / 2.
+
+    IF p_asal MOD index = 0.
+      counter = counter + 1.
+      EXIT.
+    ENDIF.
+    index = index + 1.
+  ENDWHILE.
+
+  IF counter = 0.
+    WRITE: 'Girilen sayı asal sayıdır.', p_asal.
+  ELSE.
+    WRITE: 'Girilen sayı asal sayı değildir.',p_asal.
+  ENDIF.
+ENDIF.
+
+ELSE.
+WRITE: 'Lütfen 1 ile 10000 arasında bir sayı giriniz!.'.
+ENDIF.

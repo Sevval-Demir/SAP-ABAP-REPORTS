@@ -1,0 +1,215 @@
+REPORT z_malz_yap.
+
+TABLES: zmt_malzeme, zmat_tanım, zhrk_baslık, zhrk_kalem.
+
+SELECT-OPTIONS: s_malzno FOR zmt_malzeme-malzeme_no MATCHCODE OBJECT zsh_malzeme.
+
+SELECTION-SCREEN BEGIN OF BLOCK b1 WITH FRAME TITLE text-001.
+PARAMETERS:
+  p_rad1 RADIOBUTTON GROUP grp DEFAULT 'X',  "Master Bilgisi
+  p_rad2 RADIOBUTTON GROUP grp.              "Hareket Bilgisi
+SELECTION-SCREEN END OF BLOCK b1.
+
+START-OF-SELECTION.
+  IF p_rad1 = 'X'.
+    PERFORM yaz_master_bilgisi.
+  ELSEIF p_rad2 = 'X'.
+    PERFORM yaz_hareket_bilgisi.
+  ENDIF.
+
+*---------------------------------------------------------------------*
+* Master Bilgisi Yazdırma
+*---------------------------------------------------------------------*
+FORM yaz_master_bilgisi.
+
+
+  TYPES: BEGIN OF ty_malz_join,
+           malzeme_no             TYPE zmt_malzeme-malzeme_no,
+           malzeme_turu           TYPE zmt_malzeme-malzeme_turu,
+           mal_grubu              TYPE zmt_malzeme-mal_grubu,
+           eski_malzeme_numarasi  TYPE zmt_malzeme-eski_malzeme_numarasi,
+           temel_olcu_birimi      TYPE zmt_malzeme-temel_olcu_birimi,
+           brut_agirlik           TYPE zmt_malzeme-brut_agirlik,
+           net_agirlik            TYPE zmt_malzeme-net_agirlik,
+           agirlik_birimi         TYPE zmt_malzeme-agirlik_birimi,
+           mat_desc               TYPE zmat_tanım-mat_desc,
+         END OF ty_malz_join.
+
+  DATA: lt_malzj TYPE TABLE OF ty_malz_join,
+        ls_malzj TYPE ty_malz_join.
+
+
+  IF s_malzno[] IS INITIAL.
+    SELECT
+      a~malzeme_no
+      a~malzeme_turu
+      a~mal_grubu
+      a~eski_malzeme_numarasi
+      a~temel_olcu_birimi
+      a~brut_agirlik
+      a~net_agirlik
+      a~agirlik_birimi
+      b~mat_desc
+      INTO TABLE lt_malzj
+      FROM zmt_malzeme AS a
+      INNER JOIN zmat_tanım AS b
+        ON b~matnr = a~malzeme_no
+       AND b~spras = sy-langu.
+  ELSE.
+    SELECT
+      a~malzeme_no
+      a~malzeme_turu
+      a~mal_grubu
+      a~eski_malzeme_numarasi
+      a~temel_olcu_birimi
+      a~brut_agirlik
+      a~net_agirlik
+      a~agirlik_birimi
+      b~mat_desc
+      INTO TABLE lt_malzj
+      FROM zmt_malzeme AS a
+      INNER JOIN zmat_tanım AS b
+        ON b~matnr = a~malzeme_no
+       AND b~spras = sy-langu
+      WHERE a~malzeme_no IN s_malzno.
+  ENDIF.
+
+
+  LOOP AT lt_malzj INTO ls_malzj.
+
+    FORMAT COLOR COL_HEADING.
+    WRITE: / 'Malzeme Bilgileri'.
+    FORMAT COLOR OFF.
+    ULINE.
+
+    WRITE: / 'Malzeme No     :', ls_malzj-malzeme_no.
+    WRITE: / 'Malzeme Tanımı :', ls_malzj-mat_desc.
+    WRITE: / 'Malzeme Türü   :', ls_malzj-malzeme_turu.
+    WRITE: / 'Mal Grubu      :', ls_malzj-mal_grubu.
+    WRITE: / 'Eski Malzeme   :', ls_malzj-eski_malzeme_numarasi.
+    WRITE: / 'Ölçü Birimi    :', ls_malzj-temel_olcu_birimi.
+    WRITE: / 'Brüt Ağırlık   :', ls_malzj-brut_agirlik.
+    WRITE: / 'Net Ağırlık    :', ls_malzj-net_agirlik.
+    WRITE: / 'Ağırlık Birimi :', ls_malzj-agirlik_birimi.
+    ULINE.
+
+  ENDLOOP.
+
+ENDFORM.
+
+*---------------------------------------------------------------------*
+* Hareket Bilgisi Yazdırma
+*---------------------------------------------------------------------*
+FORM yaz_hareket_bilgisi.
+
+  TYPES: BEGIN OF ty_hareket_join,
+           belge_no     TYPE zhrk_kalem-belge_no,
+           mali_yil     TYPE zhrk_kalem-mali_yil,
+           belge_tarihi TYPE zhrk_baslık-belge_tarihi,
+           belge_turu   TYPE zhrk_baslık-belge_turu,
+           kalem_no     TYPE zhrk_kalem-kalem_no,
+           matnr        TYPE zhrk_kalem-matnr,
+           mat_desc     TYPE zmat_tanım-mat_desc,
+           miktar       TYPE zhrk_kalem-miktar,
+         END OF ty_hareket_join.
+
+  DATA: lt_kalemj TYPE TABLE OF ty_hareket_join,
+        ls_kalemj TYPE ty_hareket_join,
+        lv_prev_belge TYPE zhrk_kalem-belge_no VALUE '',
+        lv_prev_yil   TYPE zhrk_kalem-mali_yil VALUE ''.
+
+
+  IF s_malzno[] IS INITIAL.
+    SELECT
+      k~belge_no
+      k~mali_yil
+      b~belge_tarihi
+      b~belge_turu
+      k~kalem_no
+      k~matnr
+      t~mat_desc
+      k~miktar
+      INTO TABLE lt_kalemj
+      FROM zhrk_kalem AS k
+      INNER JOIN zhrk_baslık AS b
+        ON b~belge_no = k~belge_no
+       AND b~mali_yil = k~mali_yil
+      INNER JOIN zmat_tanım AS t
+        ON t~matnr = k~matnr
+       AND t~spras = sy-langu.
+  ELSE.
+    SELECT
+      k~belge_no
+      k~mali_yil
+      b~belge_tarihi
+      b~belge_turu
+      k~kalem_no
+      k~matnr
+      t~mat_desc
+      k~miktar
+      INTO TABLE lt_kalemj
+      FROM zhrk_kalem AS k
+      INNER JOIN zhrk_baslık AS b
+        ON b~belge_no = k~belge_no
+       AND b~mali_yil = k~mali_yil
+      INNER JOIN zmat_tanım AS t
+        ON t~matnr = k~matnr
+       AND t~spras = sy-langu
+      WHERE k~matnr IN s_malzno.
+  ENDIF.
+
+
+  SORT lt_kalemj BY mali_yil belge_no kalem_no.
+
+  IF lt_kalemj IS INITIAL.
+    WRITE: / 'Malzemeye ait hareket bulunamadı.'.
+    RETURN.
+  ENDIF.
+
+  FORMAT COLOR COL_HEADING.
+  WRITE AT  1  'Belge No'.
+  WRITE AT 12  'Mali Yıl'.
+  WRITE AT 22  'Belge Tarihi'.
+  WRITE AT 36  'Belge Türü'.
+  WRITE AT 50  'Kalem No'.
+  WRITE AT 62  'Malzeme'.
+  WRITE AT 74  'Tanım'.
+  WRITE AT 88  'Miktar'.
+  FORMAT COLOR OFF.
+  ULINE.
+
+  LOOP AT lt_kalemj INTO ls_kalemj.
+
+    IF ls_kalemj-belge_no <> lv_prev_belge OR ls_kalemj-mali_yil <> lv_prev_yil.
+      ULINE.
+      WRITE AT  1  ls_kalemj-belge_no.
+      WRITE AT 12  ls_kalemj-mali_yil.
+      WRITE AT 22  ls_kalemj-belge_tarihi.
+      WRITE AT 36  ls_kalemj-belge_turu.
+    ELSE.
+      WRITE AT  1  ' '.
+      WRITE AT 12  ' '.
+      WRITE AT 22  ' '.
+      WRITE AT 36  ' '.
+    ENDIF.
+
+    IF sy-tabix MOD 2 = 0.
+      FORMAT COLOR COL_NORMAL INTENSIFIED OFF.
+    ELSE.
+      FORMAT COLOR COL_NORMAL INTENSIFIED ON.
+    ENDIF.
+
+    WRITE AT 50 ls_kalemj-kalem_no.
+    WRITE AT 62 ls_kalemj-matnr.
+    WRITE AT 74 ls_kalemj-mat_desc.
+    WRITE AT 78 ls_kalemj-miktar.
+
+    lv_prev_belge = ls_kalemj-belge_no.
+    lv_prev_yil   = ls_kalemj-mali_yil.
+
+  ENDLOOP.
+
+  FORMAT COLOR OFF.
+  ULINE.
+
+ENDFORM.
